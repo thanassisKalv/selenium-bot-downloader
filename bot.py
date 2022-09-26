@@ -12,7 +12,7 @@ import json
 LOCAL_FOLDER = "./local_folder/"
 
 # TODO: we use a hardcoded list of target URLs (directories), get them dynamically if root folder has children directories
-target_URLs = ['https://archive.ics.uci.edu/ml/machine-learning-databases/00245/',
+target_URLs = ['https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/',
                 "https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/"]
 
 chromeOptions = selenium.webdriver.ChromeOptions()
@@ -26,9 +26,31 @@ chromeOptions.add_argument("--headless")
 print('Selenium opens headless browser...')
 driver = selenium.webdriver.Chrome(options=chromeOptions) 
 
+def save_file(download_url):
+
+    filename = download_url.split("/")[-1]
+    print('Saving file to local folder:', filename)
+    fp = open(LOCAL_FOLDER + filename, 'wb')
+    # TODO: save hashcode checksum of the downloaded_file and next time check if it's already downloaded
+    fp.write(base64.b64decode(downloaded_file))
+    fp.close()
+
+def save_downloaded(download_url):
+
+    fp = open("saved_before.txt", 'a')
+    fp.write(download_url+"\n")
+    fp.close()
+
+def load_downloaded():
+
+    fp = open("saved_before.txt", 'r')
+    urls = fp.readlines()
+    fp.close()
+    return urls
+
 for target_url in target_URLs:
     driver.get( target_url )
-    print("Visiting", target_url)
+    print("Checking directory:", target_url)
     time.sleep(1)
 
     scraped_URLs = []
@@ -39,7 +61,9 @@ for target_url in target_URLs:
 
     for download_url in scraped_URLs:
 
-        if download_url.endswith("/"):
+        previously_saved = load_downloaded()
+        if (download_url+"\n") in previously_saved or \
+            download_url.endswith("/"):
             continue
 
         print('Injecting retrieval code into web page')
@@ -71,12 +95,10 @@ for target_url in target_URLs:
                 time.sleep(1.5)
         print('\tDone')
 
-        fname = download_url.split("/")[-1]
-        print('Writing file to disk...', download_url)
-        fp = open(LOCAL_FOLDER+fname, 'wb')
-        # TODO: save hashcode checksum of the downloaded_file and next time check if it's already downloaded
-        fp.write(base64.b64decode(downloaded_file))
-        fp.close()
+        save_file(download_url)
+
+        save_downloaded(download_url)
+
         print('\tDone')
 
 driver.close() # close web browser before exit

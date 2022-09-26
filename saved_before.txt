@@ -1,0 +1,15 @@
+https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/Index
+https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/bupa.data
+https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/bupa.names
+https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/noteDuplicates.txt
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/codebook
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.data.html
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.html
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.la.97.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.la.97.gz.old
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.la.98.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.la.99.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/ipums.la.names
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/s.ipums.la.97.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/s.ipums.la.98.gz
+https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/s.ipums.la.99.gz
