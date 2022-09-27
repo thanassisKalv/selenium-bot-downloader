@@ -1,4 +1,3 @@
-import pyvirtualdisplay
 import selenium
 import selenium.webdriver
 from selenium.webdriver.common.by import By
@@ -8,6 +7,7 @@ from selenium.webdriver.chrome.options import Options
 import time
 import base64
 import json
+import os
 import requests
 from bs4 import BeautifulSoup
  
@@ -16,8 +16,8 @@ USE_PROXY = True
 LOCAL_FOLDER = "./local_folder/"
 
 # TODO: we use a hardcoded list of target URLs (directories), get them dynamically if root folder has children directories
-target_URLs = ['https://archive.ics.uci.edu/ml/machine-learning-databases/liver-disorders/',
-                "https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/"]
+target_URLs = ['https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/',
+                'https://chromedriver.storage.googleapis.com/index.html?path=105.0.5195.52/' ]
 
 chromeOptions = selenium.webdriver.ChromeOptions()
 
@@ -40,7 +40,11 @@ def create_proxy_driver(PROXY):
     options.add_argument("--disable-gpu")
     if USE_PROXY:
         options.add_argument(f'--proxy-server={PROXY}')
-    driver = selenium.webdriver.Chrome(options=options)
+    driverExePath = "./drivers/chromedriverWin.exe"
+    if os.name != 'nt':
+        driverExePath = "./drivers/chromedriver"
+    print(driverExePath)
+    driver = selenium.webdriver.Chrome(options=options, executable_path=driverExePath)
     return driver
 
 if USE_PROXY:
@@ -53,7 +57,7 @@ proxydriver = create_proxy_driver(ALL_PROXIES)
 
 #proxydriver = selenium.webdriver.Chrome(options=chromeOptions) 
 
-def save_file(download_url):
+def save_file(download_url, downloaded_file):
 
     filename = download_url.split("/")[-1]
     print('Saving file to local folder:', filename)
@@ -126,9 +130,14 @@ for target_url in target_URLs:
             if not downloaded_file:
                 print('\tNot downloaded, waiting...')
                 time.sleep(1.5)
+        try:
+            if "DOCTYPE html" in base64.b64decode(downloaded_file).decode():
+                continue
+        except:
+            pass
         print('\tDone')
 
-        save_file(download_url)
+        save_file(download_url, downloaded_file)
 
         save_downloaded(download_url)
 
