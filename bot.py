@@ -4,25 +4,55 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from datetime import datetime
 import time
 import base64
 import json
 import os
 import requests
 from bs4 import BeautifulSoup
- 
-USE_PROXY = True
+from pathlib import Path
+
+USE_PROXY = False
+
+target_URLs = ['MAIN_URL_ROOT_DIRS', 
+                'ANOTHER_URL_WITH_DIRS' ]
 
 LOCAL_FOLDER = "./local_folder/"
 
-# TODO: we use a hardcoded list of target URLs (directories), get them dynamically if root folder has children directories
-target_URLs = ['https://archive.ics.uci.edu/ml/machine-learning-databases/ipums-mld/',
-                'https://chromedriver.storage.googleapis.com/index.html?path=105.0.5195.52/' ]
-
 chromeOptions = selenium.webdriver.ChromeOptions()
 
+def get_soup(link):
+    request_object = requests.get(link)
+    soup = BeautifulSoup(request_object.content, features="lxml")
+    return soup
 
-def filter_proxies():   
+# adapted code from 1st answer: https://stackoverflow.com/a/34631926
+def find_internal_urls(internal_URL, depth=0, max_depth=2):
+    print(internal_URL)
+    url_objs = []
+    soup = get_soup(internal_URL)
+    a_tags = soup.findAll("a", href=True)
+
+    if depth > max_depth:
+        return {}
+    else:
+        for a_tag in a_tags:
+            url_dict = {}
+            if "Parent Directory" in str(a_tag):  # ignore links to parent directory
+                continue
+            elif "http" not in a_tag["href"] and "/" in a_tag["href"]:
+                url = internal_URL + a_tag['href']
+            else:
+                url = a_tag["href"]
+            url_dict["url"] = url
+            url_dict["depth"] = depth + 1
+            url_objs.append(url_dict)
+
+    return url_objs
+
+
+def filter_proxies():
     response = requests.get('https://www.sslproxies.org/')
     soup = BeautifulSoup(response.text,"html.parser")
     proxies = []
@@ -57,11 +87,12 @@ proxydriver = create_proxy_driver(ALL_PROXIES)
 
 #proxydriver = selenium.webdriver.Chrome(options=chromeOptions) 
 
-def save_file(download_url, downloaded_file):
+def save_file(download_url, downloaded_file, projectFolder):
 
     filename = download_url.split("/")[-1]
     print('Saving file to local folder:', filename)
-    fp = open(LOCAL_FOLDER + filename, 'wb')
+    Path(LOCAL_FOLDER + projectFolder).mkdir(parents=True, exist_ok=True)
+    fp = open(LOCAL_FOLDER + projectFolder + filename, 'wb')
     # TODO: save hashcode checksum of the downloaded_file and next time check if it's already downloaded
     fp.write(base64.b64decode(downloaded_file))
     fp.close()
@@ -80,6 +111,7 @@ def load_downloaded():
     return urls
 
 
+
 for target_url in target_URLs:
     proxydriver.get( target_url )
     print("Checking directory with url:", target_url)
@@ -94,12 +126,25 @@ for target_url in target_URLs:
     elems = proxydriver.find_elements(By.XPATH, "//a[@href]")
     for elem in elems:
         #print(elem.get_attribute("href"))
-        scraped_URLs.append(elem.get_attribute("href"))
+        directoryURL = elem.get_attribute("href")
+        if directoryURL.endswith("/"):
+            print("Finding internal urls of", directoryURL)
+            internal_urls = find_internal_urls(directoryURL)
+            print("URLS found:")
+            for internal in internal_urls:
+                dirName = elem.text # name of the directory to be created in local file-structure
+                url_obj = {"dir":dirName, "url": internal["url"], "dirURL": directoryURL }
+                print(url_obj)
+                scraped_URLs.append(url_obj)
 
-    for download_url in scraped_URLs:
+    # visit the internal URLs (directories) and download any file
+    for url_obj in scraped_URLs:
+        proxydriver.get( url_obj["dirURL"] )
+        time.sleep(1)
+        download_url = url_obj["url"]
 
         previously_saved = load_downloaded()
-        if (download_url+"\n") in previously_saved or \
+        if (url_obj["dirURL"] + download_url+"\n") in previously_saved or \
             download_url.endswith("/"):
             continue
 
@@ -137,9 +182,9 @@ for target_url in target_URLs:
             pass
         print('\tDone')
 
-        save_file(download_url, downloaded_file)
+        save_file(download_url, downloaded_file, url_obj["dir"])
 
-        save_downloaded(download_url)
+        save_downloaded(url_obj["dirURL"]+download_url)
 
         print('\tDone')
 
