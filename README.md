@@ -1,4 +1,4 @@
-# selenium-bot-downloader
+# Recursive Python downloader bot (selenium based)
 Python selenium-bot that downloads all files on an apache server and saves to a local folder.
 
 Solution based on the interesting code suggested here: https://stackoverflow.com/a/36613546 <br />
