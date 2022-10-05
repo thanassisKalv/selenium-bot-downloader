@@ -15,6 +15,8 @@ from pathlib import Path
 
 USE_PROXY = False
 
+DELAY_TIME = 1
+
 target_URLs = ['MAIN_URL_ROOT_DIRS', 
                 'ANOTHER_URL_WITH_DIRS' ]
 
@@ -29,8 +31,8 @@ def get_soup(link):
 
 # adapted code from 1st answer: https://stackoverflow.com/a/34631926
 def find_internal_urls(internal_URL, depth=0, max_depth=2):
-    print(internal_URL)
-    url_objs = []
+    print("Visiting internal directory-URL", internal_URL)
+    all_urls_info = []
     soup = get_soup(internal_URL)
     a_tags = soup.findAll("a", href=True)
 
@@ -39,15 +41,17 @@ def find_internal_urls(internal_URL, depth=0, max_depth=2):
     else:
         for a_tag in a_tags:
             url_dict = {}
-            if "Parent Directory" in str(a_tag):  # ignore links to parent directory
+            if "Parent Directory" in str(a_tag): # ignore links to parent directory
                 continue
             elif "http" not in a_tag["href"] and "/" in a_tag["href"]:
                 url = internal_URL + a_tag['href']
             else:
                 url = a_tag["href"]
             url_dict["url"] = url
+            if internal_URL not in url:
+                url_dict["url"] = internal_URL + a_tag['href']
             url_dict["depth"] = depth + 1
-            url_objs.append(url_dict)
+            all_urls_info.append(url_dict)
 
     return url_objs
 
@@ -125,17 +129,20 @@ for target_url in target_URLs:
     scraped_URLs = []
     elems = proxydriver.find_elements(By.XPATH, "//a[@href]")
     for elem in elems:
-        #print(elem.get_attribute("href"))
         directoryURL = elem.get_attribute("href")
         if directoryURL.endswith("/"):
-            print("Finding internal urls of", directoryURL)
-            internal_urls = find_internal_urls(directoryURL)
-            print("URLS found:")
+            # recursively visit all internal URLs 
+            dir_URL = elem.get_attribute("href")
+            print("Finding internal urls of", dir_URL)
+            internal_urls = find_internal_urls(dir_URL)
+            # the list internal_urls is getting bigger during this loop
             for internal in internal_urls:
-                dirName = elem.text # name of the directory to be created in local file-structure
-                url_obj = {"dir":dirName, "url": internal["url"], "dirURL": directoryURL }
-                print(url_obj)
-                scraped_URLs.append(url_obj)
+                if internal["url"].endswith("/"):
+                    deeper_urls = find_internal_urls(internal["url"])
+                    for deep_url in deeper_urls:
+                        if not deep_url["url"].endswith("/"):
+                            internal_urls.append(deep_url)
+
 
     # visit the internal URLs (directories) and download any file
     for url_obj in scraped_URLs:
