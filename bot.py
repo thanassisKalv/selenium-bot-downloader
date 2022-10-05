@@ -91,9 +91,13 @@ proxydriver = create_proxy_driver(ALL_PROXIES)
 
 #proxydriver = selenium.webdriver.Chrome(options=chromeOptions) 
 
-def save_file(download_url, downloaded_file, projectFolder):
+def save_file(download_url, downloaded_file, mainURL):
 
     filename = download_url.split("/")[-1]
+    # Keep the intermediate path of the file in order to use it for local saving
+    projectFolder = download_url.replace(mainURL, "")
+    projectFolder = projectFolder.replace(filename, "")
+
     print('Saving file to local folder:', filename)
     Path(LOCAL_FOLDER + projectFolder).mkdir(parents=True, exist_ok=True)
     fp = open(LOCAL_FOLDER + projectFolder + filename, 'wb')
@@ -142,7 +146,15 @@ for target_url in target_URLs:
                     for deep_url in deeper_urls:
                         if not deep_url["url"].endswith("/"):
                             internal_urls.append(deep_url)
-
+            #print("URLS found:")
+            for internal in internal_urls:
+                if internal["url"].endswith("/"):
+                    continue
+                dirName = elem.text
+                urlobj = {"dir":dirName, "url": internal["url"], "dirURL": dir_URL }
+                #print(urlobj)
+                scraped_URLs.append(urlobj)
+    print("URLS downloading...")
 
     # visit the internal URLs (directories) and download any file
     for url_obj in scraped_URLs:
@@ -187,12 +199,13 @@ for target_url in target_URLs:
                 continue
         except:
             pass
+
+        save_file(download_url, downloaded_file, target_url)
+
+        save_downloaded(urlobj["project"]+download_url)
+
         print('\tDone')
+        time.sleep(DELAY_TIME)
 
-        save_file(download_url, downloaded_file, url_obj["dir"])
-
-        save_downloaded(url_obj["dirURL"]+download_url)
-
-        print('\tDone')
 
 proxydriver.close() # close web browser before exit
