@@ -12,6 +12,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
+import string
 
 USE_PROXY = False
 
@@ -23,6 +24,8 @@ target_URLs = ['MAIN_URL_ROOT_DIRS',
 LOCAL_FOLDER = "./local_folder/"
 
 chromeOptions = selenium.webdriver.ChromeOptions()
+
+valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
 
 def get_soup(link):
     request_object = requests.get(link)
@@ -99,8 +102,10 @@ def save_file(download_url, downloaded_file, mainURL):
     projectFolder = projectFolder.replace(filename, "")
 
     print('Saving file to local folder:', filename)
-    Path(LOCAL_FOLDER + projectFolder).mkdir(parents=True, exist_ok=True)
-    fp = open(LOCAL_FOLDER + projectFolder + filename, 'wb')
+    pathfolder = "".join(c for c in (LOCAL_FOLDER + projectFolder) if c in valid_chars)
+    Path(pathfolder).mkdir(parents=True, exist_ok=True)
+    clean_filename = "".join(c for c in (LOCAL_FOLDER + projectFolder + filename) if c in valid_chars)
+    fp = open(clean_filename, 'wb')
     # TODO: save hashcode checksum of the downloaded_file and next time check if it's already downloaded
     fp.write(base64.b64decode(downloaded_file))
     fp.close()
@@ -200,9 +205,12 @@ for target_url in target_URLs:
         except:
             pass
 
-        save_file(download_url, downloaded_file, target_url)
-
-        save_downloaded(urlobj["project"]+download_url)
+        try:
+            save_file(download_url, downloaded_file, target_url)
+            save_downloaded(download_url)
+        except Exception as e:
+            print("Problem during download", download_url)
+            print("Exception occured:", e)
 
         print('\tDone')
         time.sleep(DELAY_TIME)
